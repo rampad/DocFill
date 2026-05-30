@@ -8,3 +8,6 @@ build/icon.png
 
 # bundled LibreOffice (large; fetch with scripts/fetch-libreoffice-mac.sh)
 resources/libreoffice/LibreOffice.app
+
+# Claude Code local config
+.claude/
