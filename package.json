@@ -1,0 +1,93 @@
+{
+  "name": "docfill",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "description": "Rellena documentos de Word automáticamente a partir de datos",
+  "author": "DocFill",
+  "scripts": {
+    "dev:web": "vite",
+    "dev": "concurrently -k -n vite,electron -c cyan,magenta \"vite\" \"pnpm dev:electron\"",
+    "dev:electron": "wait-on tcp:127.0.0.1:5173 && cross-env ELECTRON_DEV=1 electron .",
+    "build:web": "vite build",
+    "icon": "node scripts/make-icon.cjs",
+    "build": "pnpm icon && vite build && electron-builder",
+    "build:mac": "pnpm icon && vite build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac",
+    "build:mac:universal": "pnpm icon && vite build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac --universal",
+    "build:win": "pnpm icon && vite build && electron-builder --win --x64",
+    "fetch:lo:win": "powershell -ExecutionPolicy Bypass -File scripts/fetch-libreoffice-win.ps1",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "docxtemplater": "^3.50.0",
+    "electron-store": "^8.2.0",
+    "exceljs": "^4.4.0",
+    "lodash": "^4.18.1",
+    "mammoth": "^1.8.0",
+    "pdf-lib": "^1.17.1",
+    "pizzip": "^3.1.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^31.7.0",
+    "electron-builder": "^24.13.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sharp": "^0.34.5",
+    "vite": "^5.4.11",
+    "wait-on": "^8.0.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "electron",
+      "sharp"
+    ]
+  },
+  "build": {
+    "appId": "com.docfill.app",
+    "productName": "DocFill",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "extraResources": [
+        {
+          "from": "resources/libreoffice",
+          "to": "libreoffice",
+          "filter": ["**/*"]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "extraResources": [
+        {
+          "from": "resources/libreoffice-win",
+          "to": "libreoffice",
+          "filter": ["**/*"]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ]
+    }
+  }
+}

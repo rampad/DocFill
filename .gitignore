@@ -1,0 +1,10 @@
+node_modules
+dist
+release
+build/icon.png
+.DS_Store
+.design_pkg
+*.local
+
+# bundled LibreOffice (large; fetch with scripts/fetch-libreoffice-mac.sh)
+resources/libreoffice/LibreOffice.app
