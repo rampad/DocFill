@@ -11,3 +11,6 @@ resources/libreoffice/LibreOffice.app
 
 # Claude Code local config
 .claude/
+
+# Landing page (docfill.com) — deployed separately, not part of the app repo
+web/
