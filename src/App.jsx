@@ -7,13 +7,7 @@ import Generate from "./screens/Generate.jsx";
 import Settings from "./screens/Settings.jsx";
 import { api } from "./api.js";
 import { applyAccent } from "./theme.js";
-
-const TITLES = {
-  home: "DocFill",
-  templates: "Plantillas — DocFill",
-  generate: "Generar documentos — DocFill",
-  settings: "Configuración — DocFill",
-};
+import { LangContext, translate } from "./i18n.js";
 
 export default function App() {
   const [loaded, setLoaded] = useState(false);
@@ -43,9 +37,19 @@ export default function App() {
     return () => { alive = false; };
   }, []);
 
+  const lang = (appearance && appearance.lang) || "es";
+  const t = useCallback((key, params) => translate(lang, key, params), [lang]);
+  const setLang = useCallback((l) => setAppearanceState((a) => {
+    const next = { ...a, lang: l };
+    api.saveAppearance(next);
+    return next;
+  }), []);
+  const winTitle = t("title." + route);
+
   useEffect(() => { applyAccent(appearance.accent); }, [appearance.accent]);
   useEffect(() => { document.documentElement.setAttribute("data-density", appearance.density); }, [appearance.density]);
-  useEffect(() => { document.title = TITLES[route] || "DocFill"; }, [route]);
+  useEffect(() => { document.documentElement.setAttribute("lang", lang); }, [lang]);
+  useEffect(() => { document.title = winTitle; }, [winTitle]);
 
   // Persisting setters.
   const setSettings = useCallback((next) => {
@@ -98,8 +102,9 @@ export default function App() {
   }
 
   return (
+    <LangContext.Provider value={{ lang, t, setLang }}>
     <div className="app-shell">
-      <TitleBar title={TITLES[route]} />
+      <TitleBar title={winTitle} />
       <div className="app-body">
         <Sidebar route={route} onNav={navTo} />
         {route === "home" && <Home history={history} onNav={navTo} onStartGenerate={() => startGenerate(null)} onRepeat={repeatRun} />}
@@ -127,5 +132,6 @@ export default function App() {
         )}
       </div>
     </div>
+    </LangContext.Provider>
   );
 }

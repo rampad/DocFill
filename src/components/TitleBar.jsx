@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import Icon from "./Icon.jsx";
 import { api } from "../api.js";
+import { useT } from "../i18n.js";
 
 // Real window title bar. On macOS the native frame (hiddenInset) draws the
 // traffic lights, so we render only a draggable strip with the title. On
 // Windows/Linux the window is frameless and we draw working controls.
 export default function TitleBar({ title }) {
+  const { t } = useT();
   const mac = api.platform === "darwin";
   const [maxed, setMaxed] = useState(false);
 
@@ -33,9 +35,9 @@ export default function TitleBar({ title }) {
         {title}
       </div>
       <div className="win-controls no-drag">
-        <button title="Minimizar" onClick={() => api.minimize()}><Icon name="win_min" /></button>
-        <button title={maxed ? "Restaurar" : "Maximizar"} onClick={() => api.maximizeToggle()}><Icon name="win_max" /></button>
-        <button className="close" title="Cerrar" onClick={() => api.close()}><Icon name="win_close" /></button>
+        <button title={t("win.minimize")} onClick={() => api.minimize()}><Icon name="win_min" /></button>
+        <button title={maxed ? t("win.restore") : t("win.maximize")} onClick={() => api.maximizeToggle()}><Icon name="win_max" /></button>
+        <button className="close" title={t("win.close")} onClick={() => api.close()}><Icon name="win_close" /></button>
       </div>
     </div>
   );

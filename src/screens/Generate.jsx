@@ -6,8 +6,9 @@ import Switch from "../components/Switch.jsx";
 import FilenameBuilder from "../components/FilenameBuilder.jsx";
 import { api, droppedPaths } from "../api.js";
 import { VAR_LABELS } from "../data.js";
+import { useT } from "../i18n.js";
 
-const STEPS = ["Plantilla", "Origen de datos", "Datos", "Confirmar", "Resultado"];
+const STEP_KEYS = ["gen.step.0", "gen.step.1", "gen.step.2", "gen.step.3", "gen.step.4"];
 
 const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
 
@@ -78,15 +79,16 @@ function typeOfVar(template, v) {
 const labelOfVar = (template, v) => (template.meta && template.meta[v] && template.meta[v].label) || VAR_LABELS[v] || v;
 
 function Stepper({ current }) {
+  const { t } = useT();
   return (
     <div className="stepper">
-      {STEPS.map((s, i) => (
+      {STEP_KEYS.map((s, i) => (
         <Fragment key={s}>
           <div className={"step" + (i === current ? " active" : "") + (i < current ? " done" : "")}>
             <div className="step-num">{i < current ? <Icon name="check" /> : i + 1}</div>
-            <div className="step-label">{s}</div>
+            <div className="step-label">{t(s)}</div>
           </div>
-          {i < STEPS.length - 1 && <div className={"step-line" + (i < current ? " done" : "")} />}
+          {i < STEP_KEYS.length - 1 && <div className={"step-line" + (i < current ? " done" : "")} />}
         </Fragment>
       ))}
     </div>
@@ -95,33 +97,34 @@ function Stepper({ current }) {
 
 // ---------- Step 1: pick template ----------
 function PickTemplate({ templates, value, onPick, onManage }) {
+  const { t } = useT();
   if (templates.length === 0) {
     return (
       <div className="fade-in">
-        <h3 className="wiz-h">Elige una plantilla</h3>
+        <h3 className="wiz-h">{t("gen.pick.h")}</h3>
         <div className="dropzone" onClick={onManage}>
           <div className="dz-ic"><Icon name="docs" /></div>
-          <div className="dz-title">No tienes plantillas todavía</div>
-          <div className="dz-sub">Ve a «Plantillas» para subir tu primer .docx con variables {"{{...}}"}.</div>
+          <div className="dz-title">{t("gen.pick.none.title")}</div>
+          <div className="dz-sub">{t("gen.pick.none.sub")}</div>
         </div>
       </div>
     );
   }
   return (
     <div className="fade-in">
-      <h3 className="wiz-h">Elige una plantilla</h3>
-      <p className="wiz-sub">Selecciona el documento de Word que quieres rellenar.</p>
+      <h3 className="wiz-h">{t("gen.pick.h")}</h3>
+      <p className="wiz-sub">{t("gen.pick.sub")}</p>
       <div className="choice-grid">
-        {templates.map((t) => (
-          <button key={t.id} className={"choice" + (value === t.id ? " sel" : "")} onClick={() => onPick(t.id)}>
-            <div className="ck">{value === t.id && <Icon name="check" />}</div>
+        {templates.map((tpl) => (
+          <button key={tpl.id} className={"choice" + (value === tpl.id ? " sel" : "")} onClick={() => onPick(tpl.id)}>
+            <div className="ck">{value === tpl.id && <Icon name="check" />}</div>
             <div className="row-ic doc"><Icon name="doc" /></div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>{t.name}</div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{tpl.name}</div>
               <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 3, display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontFamily: "var(--mono)", fontSize: 11.5 }}>{t.file}</span>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 11.5 }}>{tpl.file}</span>
                 <span className="dot-sep" />
-                <span className="badge var">{t.vars.length} variables</span>
+                <span className="badge var">{t("gen.varsCount", { n: tpl.vars.length })}</span>
               </div>
             </div>
           </button>
@@ -133,14 +136,15 @@ function PickTemplate({ templates, value, onPick, onManage }) {
 
 // ---------- Step 2: choose source ----------
 function PickSource({ value, onPick }) {
+  const { t } = useT();
   const opts = [
-    { id: "combine", icon: "excel", title: "Cargar Excel", desc: "Genera documentos a partir de uno o varios archivos Excel. Eliges la lista principal (un documento por fila); si cargas varios, los demás aportan datos compartidos.", tag: "Uno o varios", color: "excel" },
-    { id: "manual", icon: "form", title: "Ingresar manualmente", desc: "Rellena un formulario con los datos para generar un único documento.", tag: "Un documento", color: "" },
+    { id: "combine", icon: "excel", title: t("gen.source.combine.title"), desc: t("gen.source.combine.desc"), tag: t("gen.source.combine.tag"), color: "excel" },
+    { id: "manual", icon: "form", title: t("gen.source.manual.title"), desc: t("gen.source.manual.desc"), tag: t("gen.source.manual.tag"), color: "" },
   ];
   return (
     <div className="fade-in">
-      <h3 className="wiz-h">¿De dónde vienen los datos?</h3>
-      <p className="wiz-sub">Elige cómo quieres rellenar las variables de la plantilla.</p>
+      <h3 className="wiz-h">{t("gen.source.h")}</h3>
+      <p className="wiz-sub">{t("gen.source.sub")}</p>
       <div className="choice-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
         {opts.map((o) => (
           <button key={o.id} className={"choice source" + (value === o.id ? " sel" : "")} onClick={() => onPick(o.id)} style={{ flexDirection: "column", alignItems: "flex-start", gap: 16 }}>
@@ -163,6 +167,7 @@ function PickSource({ value, onPick }) {
 
 // ---------- Step 3a: Excel loader (multi-file) + mapping + manual rows ----------
 function ExcelStep({ template, files, onAddFiles, onRemoveFile, onClear, mapping, setMapping, manualRows, setManualRows, selectedRows, setSelectedRows }) {
+  const { t } = useT();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [over, setOver] = useState(false);
@@ -191,8 +196,8 @@ function ExcelStep({ template, files, onAddFiles, onRemoveFile, onClear, mapping
   if (files.length === 0) {
     return (
       <div className="fade-in">
-        <h3 className="wiz-h">Carga tus archivos Excel</h3>
-        <p className="wiz-sub">La primera fila de cada hoja se usa como cabecera. Puedes seleccionar <strong>varios archivos</strong>: cada uno se genera como un lote independiente, en su propia subcarpeta.</p>
+        <h3 className="wiz-h">{t("gen.excel.h")}</h3>
+        <p className="wiz-sub">{t("gen.excel.subA")}<strong>{t("gen.excel.subStrong")}</strong>{t("gen.excel.subB")}</p>
         {err && (
           <div className="fixed-note" style={{ marginBottom: 16, background: "var(--danger-soft)", color: "var(--danger)" }}>
             <Icon name="alert" style={{ width: 14, height: 14 }} /> {err}
@@ -203,8 +208,8 @@ function ExcelStep({ template, files, onAddFiles, onRemoveFile, onClear, mapping
           onDragLeave={() => setOver(false)}
           onDrop={onDrop}>
           <div className="dz-ic">{loading ? <span className="spinner" /> : <Icon name="excel" />}</div>
-          <div className="dz-title">{loading ? "Leyendo los Excel…" : over ? "Suelta tus .xlsx aquí" : "Selecciona o arrastra uno o varios .xlsx"}</div>
-          <div className="dz-sub">Mantén ⌘/Ctrl para elegir varios a la vez</div>
+          <div className="dz-title">{loading ? t("gen.excel.reading") : over ? t("gen.dropHere") : t("gen.excel.selectOrDrag")}</div>
+          <div className="dz-sub">{t("gen.multiHint")}</div>
         </div>
       </div>
     );
@@ -252,10 +257,10 @@ function ExcelStep({ template, files, onAddFiles, onRemoveFile, onClear, mapping
 
   return (
     <div className="fade-in">
-      <h3 className="wiz-h">Asigna las variables</h3>
+      <h3 className="wiz-h">{t("gen.map.h")}</h3>
       <p className="wiz-sub">
         <Icon name="excel" style={{ width: 15, height: 15, color: "var(--excel)", verticalAlign: "-3px", marginRight: 6 }} />
-        {files.length} {files.length === 1 ? "archivo" : "archivos"} · {totalRows} {totalRows === 1 ? "fila" : "filas"} · {usedCount} de {template.vars.length} variables asignadas
+        {t("gen.excel.summary", { files: files.length, rows: totalRows, used: usedCount, total: template.vars.length })}
       </p>
 
       {/* loaded files list */}
@@ -268,32 +273,32 @@ function ExcelStep({ template, files, onAddFiles, onRemoveFile, onClear, mapping
               <div className="row-main">
                 <div className="row-title" style={{ fontSize: 13.5 }}>{f.file}</div>
                 <div className="row-meta">
-                  <span>{f.total} {f.total === 1 ? "fila" : "filas"}</span>
-                  {mismatch && <><span className="dot-sep" /><span style={{ color: "var(--warn)", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="alert" style={{ width: 12, height: 12 }} /> columnas distintas — se cruzan por nombre</span></>}
+                  <span>{t("gen.excel.rowsCount", { n: f.total })}</span>
+                  {mismatch && <><span className="dot-sep" /><span style={{ color: "var(--warn)", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="alert" style={{ width: 12, height: 12 }} /> {t("gen.excel.mismatch")}</span></>}
                 </div>
               </div>
-              <button className="icon-btn" title="Quitar" onClick={() => onRemoveFile(f.file)}><Icon name="x" /></button>
+              <button className="icon-btn" title={t("common.remove")} onClick={() => onRemoveFile(f.file)}><Icon name="x" /></button>
             </div>
           );
         })}
         <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
           <button className="btn btn-ghost btn-sm" onClick={loading ? undefined : load} disabled={loading}>
-            {loading ? <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : <Icon name="plus" />} Añadir otro Excel
+            {loading ? <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : <Icon name="plus" />} {t("gen.addAnother")}
           </button>
-          <button className="btn btn-subtle btn-sm" onClick={onClear}>Quitar todo</button>
+          <button className="btn btn-subtle btn-sm" onClick={onClear}>{t("common.removeAll")}</button>
         </div>
       </div>
       {multi && (
         <p className="wiz-sub" style={{ marginTop: -8, marginBottom: 16 }}>
-          El mapeo de abajo (basado en <strong>{files[0].file}</strong>) se aplica a todos los archivos; cada uno generará sus documentos en una subcarpeta con su nombre.
+          {t("gen.excel.multiNote.a")}<strong>{files[0].file}</strong>{t("gen.excel.multiNote.b")}
         </p>
       )}
 
       <div className="map-card">
         <div className="map-head map-head-2">
-          <span>Variable de la plantilla</span>
+          <span>{t("gen.col.templateVar")}</span>
           <span></span>
-          <span>Cómo se rellena</span>
+          <span>{t("gen.col.howFill")}</span>
         </div>
         {template.vars.map((v) => {
           const m = mapping[v] || { mode: "col", col: null, value: "" };
@@ -305,22 +310,22 @@ function ExcelStep({ template, files, onAddFiles, onRemoveFile, onClear, mapping
               <div className="map-control">
                 <div className="mode-seg">
                   <button className={m.mode === "col" ? "on" : ""} onClick={() => setMode(v, "col")}>
-                    <Icon name="excel" style={{ width: 13, height: 13 }} /> Columna
+                    <Icon name="excel" style={{ width: 13, height: 13 }} /> {t("gen.col.column")}
                   </button>
                   <button className={m.mode === "fixed" ? "on" : ""} onClick={() => setMode(v, "fixed")}>
-                    <Icon name="edit" style={{ width: 12, height: 12 }} /> Valor fijo
+                    <Icon name="edit" style={{ width: 12, height: 12 }} /> {t("gen.col.fixed")}
                   </button>
                 </div>
                 <div className="map-input-row">
                   {m.mode === "col" ? (
                     <select className="select" value={m.col ?? ""} onChange={(e) => setCol(v, e.target.value === "" ? null : Number(e.target.value))}>
-                      <option value="">— Elige una columna —</option>
+                      <option value="">{t("gen.chooseColumn")}</option>
                       {cols.map((c, ci) => <option key={ci} value={ci}>{c}</option>)}
                     </select>
                   ) : (
-                    <input className="input" placeholder="Mismo valor para todos los documentos…" value={m.value} onChange={(e) => setVal(v, e.target.value)} />
+                    <input className="input" placeholder={t("gen.fixedPlaceholderAll")} value={m.value} onChange={(e) => setVal(v, e.target.value)} />
                   )}
-                  <span className={"map-status " + (ok ? "ok" : "miss")} title={ok ? "Asignada" : "Sin asignar"}>
+                  <span className={"map-status " + (ok ? "ok" : "miss")} title={ok ? t("gen.assignedOk") : t("gen.assignedMiss")}>
                     <Icon name={ok ? "checkCircle" : "alert"} style={{ width: 16, height: 16 }} />
                   </span>
                 </div>
@@ -332,7 +337,7 @@ function ExcelStep({ template, files, onAddFiles, onRemoveFile, onClear, mapping
       {fixedCount > 0 && (
         <div className="fixed-note">
           <Icon name="edit" style={{ width: 14, height: 14 }} />
-          {fixedCount === 1 ? "1 variable usará un valor fijo" : `${fixedCount} variables usarán un valor fijo`} — idéntico en los {totalRows} documentos.
+          {t("gen.fixedNote", { n: fixedCount, total: totalRows })}
         </div>
       )}
 
@@ -351,23 +356,23 @@ function ExcelStep({ template, files, onAddFiles, onRemoveFile, onClear, mapping
 
       <div className="sec-head" style={{ marginTop: 26 }}>
         <Icon name="table" style={{ width: 16, height: 16, color: "var(--ink-3)" }} />
-        <h2>{multi ? `Vista previa · ${files[0].file}` : "Filas a generar"}</h2>
+        <h2>{multi ? t("gen.previewOf", { file: files[0].file }) : t("gen.rowsToGen")}</h2>
         <div className="spacer" />
-        {!multi && <button className="btn btn-ghost btn-sm" onClick={addRow}><Icon name="plus" /> Añadir fila manual</button>}
+        {!multi && <button className="btn btn-ghost btn-sm" onClick={addRow}><Icon name="plus" /> {t("gen.addManualRow")}</button>}
       </div>
 
       {!multi && (
         <div className="row-select-bar">
           <span className="rsb-count">
-            <strong>{selCount}</strong> de {fileTotal} {fileTotal === 1 ? "fila" : "filas"} seleccionadas
+            {t("gen.rowsSelected", { sel: selCount, total: fileTotal })}
           </span>
           <div className="spacer" />
-          <button className="btn btn-subtle btn-sm" onClick={selectAll}>Todas</button>
-          <button className="btn btn-subtle btn-sm" onClick={selectNone}>Ninguna</button>
-          <div className="search-box" style={{ minWidth: 200 }} title="Ej: 1-5, 8, 12-20">
+          <button className="btn btn-subtle btn-sm" onClick={selectAll}>{t("gen.all")}</button>
+          <button className="btn btn-subtle btn-sm" onClick={selectNone}>{t("gen.none")}</button>
+          <div className="search-box" style={{ minWidth: 200 }} title="1-5, 8, 12-20">
             <Icon name="table" />
             <input
-              placeholder="Rango o lista: 1-5, 8, 12-20"
+              placeholder={t("gen.rangePlaceholder")}
               value={exprText}
               onChange={(e) => onExprChange(e.target.value)}
             />
@@ -380,7 +385,7 @@ function ExcelStep({ template, files, onAddFiles, onRemoveFile, onClear, mapping
           <thead>
             <tr>
               {!multi && <th style={{ width: 34, textAlign: "center" }}>
-                <input type="checkbox" checked={selCount === fileTotal && fileTotal > 0} onChange={(e) => (e.target.checked ? selectAll() : selectNone())} title="Seleccionar todas" />
+                <input type="checkbox" checked={selCount === fileTotal && fileTotal > 0} onChange={(e) => (e.target.checked ? selectAll() : selectNone())} title={t("gen.selectAllTitle")} />
               </th>}
               <th style={{ width: 34 }}></th>
               {cols.map((c, i) => (
@@ -397,7 +402,7 @@ function ExcelStep({ template, files, onAddFiles, onRemoveFile, onClear, mapping
                 </td>}
                 <td className="rownum">{ri + 1}</td>
                 {cols.map((_c, ci) => <td key={ci}>{r[ci]}</td>)}
-                <td><span className="origin-tag excel"><Icon name="excel" style={{ width: 11, height: 11 }} /> Excel</span></td>
+                <td><span className="origin-tag excel"><Icon name="excel" style={{ width: 11, height: 11 }} /> {t("gen.tag.excel")}</span></td>
               </tr>
             ))}
             {!multi && manualRows.map((r, ri) => (
@@ -409,16 +414,16 @@ function ExcelStep({ template, files, onAddFiles, onRemoveFile, onClear, mapping
                     <input className="cell-input" value={r[ci] || ""} placeholder="—" onChange={(e) => updateCell(ri, ci, e.target.value)} />
                   </td>
                 ))}
-                <td><button className="icon-btn" title="Quitar fila" onClick={() => delRow(ri)}><Icon name="trash" /></button></td>
+                <td><button className="icon-btn" title={t("gen.removeRow")} onClick={() => delRow(ri)}><Icon name="trash" /></button></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="muted" style={{ fontSize: 12.5, marginTop: 10, display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
-        <span>Mostrando {preview.length} de {files[0].total} filas{multi ? ` de ${files[0].file}` : " del Excel"}</span>
-        {!multi && files[0].total > MAX_VISIBLE && <><span className="dot-sep" /><span>usa el rango para seleccionar más allá de la fila {MAX_VISIBLE}</span></>}
-        {!multi && manualRows.length > 0 && <><span className="dot-sep" /><span style={{ color: "var(--accent)", fontWeight: 600 }}>+ {manualRows.length} {manualRows.length === 1 ? "fila manual" : "filas manuales"}</span></>}
+        <span>{t("gen.showing", { shown: preview.length, total: files[0].total, file: files[0].file, multi })}</span>
+        {!multi && files[0].total > MAX_VISIBLE && <><span className="dot-sep" /><span>{t("gen.beyondRow", { max: MAX_VISIBLE })}</span></>}
+        {!multi && manualRows.length > 0 && <><span className="dot-sep" /><span style={{ color: "var(--accent)", fontWeight: 600 }}>{t("gen.manualRowsExtra", { n: manualRows.length })}</span></>}
       </div>
     </div>
   );
@@ -426,6 +431,7 @@ function ExcelStep({ template, files, onAddFiles, onRemoveFile, onClear, mapping
 
 // ---------- Step 3b: Manual form ----------
 function ManualForm({ template, values, setValues, errors }) {
+  const { t } = useT();
   const [flash, setFlash] = useState(null);
   const update = (v, val) => {
     setValues({ ...values, [v]: val });
@@ -434,8 +440,8 @@ function ManualForm({ template, values, setValues, errors }) {
   };
   return (
     <div className="fade-in">
-      <h3 className="wiz-h">Rellena los datos</h3>
-      <p className="wiz-sub">Un campo por cada variable de «{template.name}». La vista previa se actualiza en directo.</p>
+      <h3 className="wiz-h">{t("gen.manual.h")}</h3>
+      <p className="wiz-sub">{t("gen.manual.sub", { name: template.name })}</p>
       <ProfilesBar
         getCurrent={() => {
           const o = {};
@@ -463,7 +469,7 @@ function ManualForm({ template, values, setValues, errors }) {
                     className={"input" + (errors[v] ? " err" : "")}
                     type={isDate ? "date" : "text"}
                     inputMode={isNum ? "decimal" : undefined}
-                    placeholder={isDate ? "" : "Escribe " + label.toLowerCase() + "…"}
+                    placeholder={isDate ? "" : t("gen.manual.writePh", { label: label.toLowerCase() })}
                     value={values[v] || ""}
                     onChange={(e) => update(v, e.target.value)}
                   />
@@ -475,7 +481,7 @@ function ManualForm({ template, values, setValues, errors }) {
           })}
         </div>
         <div className="manual-preview">
-          <div className="preview-label"><Icon name="eye" style={{ width: 15, height: 15 }} /> Vista previa en vivo</div>
+          <div className="preview-label"><Icon name="eye" style={{ width: 15, height: 15 }} /> {t("gen.manual.previewLive")}</div>
           <div className="preview-pane">
             <TemplatePreview template={template} values={values} flashKey={flash} />
           </div>
@@ -609,6 +615,7 @@ function combineValues(template, files, combineMap) {
 }
 
 function CombineStep({ template, files, onAddFiles, onRemoveFile, onClear, combineMap, setCombineMap, primaryIdx, setPrimaryIdx, selectedRows, setSelectedRows }) {
+  const { t } = useT();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [over, setOver] = useState(false);
@@ -632,14 +639,14 @@ function CombineStep({ template, files, onAddFiles, onRemoveFile, onClear, combi
   if (files.length === 0) {
     return (
       <div className="fade-in">
-        <h3 className="wiz-h">Carga tu Excel</h3>
-        <p className="wiz-sub">Puedes cargar <strong>uno o varios</strong> archivos. Se genera un documento por cada fila de la <strong>lista principal</strong>; si cargas varios, los demás aportan datos <strong>compartidos</strong> (iguales en todos los documentos). Para cada variable eliges de qué archivo y columna sale.</p>
+        <h3 className="wiz-h">{t("gen.combine.h")}</h3>
+        <p className="wiz-sub">{t("gen.combine.sub.a")}<strong>{t("gen.combine.sub.oneOrMany")}</strong>{t("gen.combine.sub.b")}<strong>{t("gen.combine.sub.mainList")}</strong>{t("gen.combine.sub.c")}<strong>{t("gen.combine.sub.shared")}</strong>{t("gen.combine.sub.d")}</p>
         {err && <div className="fixed-note" style={{ marginBottom: 16, background: "var(--danger-soft)", color: "var(--danger)" }}><Icon name="alert" style={{ width: 14, height: 14 }} /> {err}</div>}
         <div className={"dropzone" + (over ? " over" : "")} onClick={loading ? undefined : load}
           onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={onDrop}>
           <div className="dz-ic">{loading ? <span className="spinner" /> : <Icon name="table" />}</div>
-          <div className="dz-title">{loading ? "Leyendo…" : over ? "Suelta tus .xlsx aquí" : "Selecciona o arrastra varios .xlsx"}</div>
-          <div className="dz-sub">Mantén ⌘/Ctrl para elegir varios a la vez</div>
+          <div className="dz-title">{loading ? t("gen.reading") : over ? t("gen.dropHere") : t("gen.combine.selectOrDrag")}</div>
+          <div className="dz-sub">{t("gen.multiHint")}</div>
         </div>
       </div>
     );
@@ -659,10 +666,10 @@ function CombineStep({ template, files, onAddFiles, onRemoveFile, onClear, combi
 
   return (
     <div className="fade-in">
-      <h3 className="wiz-h">Asigna las variables</h3>
+      <h3 className="wiz-h">{t("gen.map.h")}</h3>
       <p className="wiz-sub">
         <Icon name="table" style={{ width: 15, height: 15, color: "var(--excel)", verticalAlign: "-3px", marginRight: 6 }} />
-        {files.length} {files.length === 1 ? "archivo" : "archivos"} · {assigned} de {template.vars.length} variables con valor
+        {t("gen.combine.summary", { files: files.length, assigned, total: template.vars.length })}
       </p>
 
       <div className="map-card" style={{ marginBottom: 18, padding: "var(--s3) var(--s4)" }}>
@@ -671,16 +678,16 @@ function CombineStep({ template, files, onAddFiles, onRemoveFile, onClear, combi
             <div className="row-ic" style={{ background: "var(--excel-soft)", color: "var(--excel)", width: 34, height: 34, flex: "0 0 34px" }}><Icon name="excel" style={{ width: 17, height: 17 }} /></div>
             <div className="row-main">
               <div className="row-title" style={{ fontSize: 13.5 }}>{f.file}</div>
-              <div className="row-meta"><span>{f.columns.length} columnas · usa la fila 1 de datos</span></div>
+              <div className="row-meta"><span>{t("gen.combine.colsInfo", { n: f.columns.length })}</span></div>
             </div>
-            <button className="icon-btn" title="Quitar" onClick={() => onRemoveFile(f.file)}><Icon name="x" /></button>
+            <button className="icon-btn" title={t("common.remove")} onClick={() => onRemoveFile(f.file)}><Icon name="x" /></button>
           </div>
         ))}
         <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
           <button className="btn btn-ghost btn-sm" onClick={loading ? undefined : load} disabled={loading}>
-            {loading ? <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : <Icon name="plus" />} Añadir otro Excel
+            {loading ? <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : <Icon name="plus" />} {t("gen.addAnother")}
           </button>
-          <button className="btn btn-subtle btn-sm" onClick={onClear}>Quitar todo</button>
+          <button className="btn btn-subtle btn-sm" onClick={onClear}>{t("common.removeAll")}</button>
         </div>
       </div>
 
@@ -695,23 +702,23 @@ function CombineStep({ template, files, onAddFiles, onRemoveFile, onClear, combi
               <Icon name="docs" style={{ width: 16, height: 16, color: "var(--accent)" }} />
               {files.length > 1 ? (
                 <>
-                  <span style={{ fontSize: 13.5, fontWeight: 600 }}>Lista principal (1 documento por fila):</span>
+                  <span style={{ fontSize: 13.5, fontWeight: 600 }}>{t("gen.combine.mainListLabel")}</span>
                   <select className="select" style={{ width: "auto", minWidth: 220 }} value={primaryIdx}
                     onChange={(e) => { setPrimaryIdx(Number(e.target.value)); setSelectedRows(null); setExprText(""); }}>
-                    {files.map((f, fi) => <option key={fi} value={fi}>{f.file} ({f.total} {f.total === 1 ? "fila" : "filas"})</option>)}
+                    {files.map((f, fi) => <option key={fi} value={fi}>{t("gen.combine.fileRows", { file: f.file, n: f.total })}</option>)}
                   </select>
                 </>
               ) : (
-                <span style={{ fontSize: 13.5, fontWeight: 600 }}>Un documento por cada fila de <span style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{primary ? primary.file : ""}</span></span>
+                <span style={{ fontSize: 13.5, fontWeight: 600 }}>{t("gen.combine.onePerRow.a")}<span style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{primary ? primary.file : ""}</span></span>
               )}
             </div>
             <div className="row-select-bar" style={{ marginTop: 12, marginBottom: 0 }}>
-              <span className="rsb-count"><strong>{selCount}</strong> de {pTotal} filas → <strong>{selCount}</strong> {selCount === 1 ? "documento" : "documentos"}</span>
+              <span className="rsb-count">{t("gen.combine.rowsToDocs", { sel: selCount, total: pTotal })}</span>
               <div className="spacer" />
-              <button className="btn btn-subtle btn-sm" onClick={() => { setSelectedRows(null); setExprText(""); }}>Todas</button>
-              <div className="search-box" style={{ minWidth: 200 }} title="Ej: 1-5, 8">
+              <button className="btn btn-subtle btn-sm" onClick={() => { setSelectedRows(null); setExprText(""); }}>{t("gen.all")}</button>
+              <div className="search-box" style={{ minWidth: 200 }} title="1-5, 8">
                 <Icon name="table" />
-                <input placeholder="Filas: 1-5, 8 (vacío = todas)" value={exprText}
+                <input placeholder={t("gen.combine.rowsPh")} value={exprText}
                   onChange={(e) => { const v = e.target.value; setExprText(v); const s = parseRowExpr(v, pTotal); setSelectedRows(v.trim() === "" || s.size === pTotal ? null : s); }} />
               </div>
             </div>
@@ -721,7 +728,7 @@ function CombineStep({ template, files, onAddFiles, onRemoveFile, onClear, combi
 
       <div className="map-card var-editor">
         <div className="var-edit-head" style={{ gridTemplateColumns: "minmax(150px,1fr) 96px minmax(320px,1.6fr)" }}>
-          <span>Variable</span><span></span><span>De dónde sale el valor</span>
+          <span>{t("gen.combine.col.var")}</span><span></span><span>{t("gen.combine.col.from")}</span>
         </div>
         {template.vars.map((v) => {
           const m = combineMap[v] || { mode: "fixed", fileIdx: 0, colName: null, value: "" };
@@ -734,13 +741,13 @@ function CombineStep({ template, files, onAddFiles, onRemoveFile, onClear, combi
                 <div className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>{labelOfVar(template, v)}</div>
                 {m.mode === "excel" && (
                   <div style={{ fontSize: 10.5, marginTop: 3, fontWeight: 600, color: m.fileIdx === primaryIdx ? "var(--accent)" : "var(--ink-3)" }}>
-                    {m.fileIdx === primaryIdx ? "▸ varía por fila" : "= igual en todos"}
+                    {m.fileIdx === primaryIdx ? t("gen.combine.variesByRow") : t("gen.combine.sameAll")}
                   </div>
                 )}
               </div>
               <div className="mode-seg" style={{ alignSelf: "start" }}>
-                <button className={m.mode === "excel" ? "on" : ""} onClick={() => setMode(v, "excel")} title="De un Excel"><Icon name="excel" style={{ width: 13, height: 13 }} /></button>
-                <button className={m.mode === "fixed" ? "on" : ""} onClick={() => setMode(v, "fixed")} title="Valor fijo"><Icon name="edit" style={{ width: 12, height: 12 }} /></button>
+                <button className={m.mode === "excel" ? "on" : ""} onClick={() => setMode(v, "excel")} title={t("gen.combine.fromExcel")}><Icon name="excel" style={{ width: 13, height: 13 }} /></button>
+                <button className={m.mode === "fixed" ? "on" : ""} onClick={() => setMode(v, "fixed")} title={t("gen.combine.fixedValue")}><Icon name="edit" style={{ width: 12, height: 12 }} /></button>
               </div>
               <div className="map-control">
                 {m.mode === "excel" ? (
@@ -750,7 +757,7 @@ function CombineStep({ template, files, onAddFiles, onRemoveFile, onClear, combi
                         {files.map((f, fi) => <option key={fi} value={fi}>{f.file}</option>)}
                       </select>
                       <select className="select" value={m.colName ?? ""} onChange={(e) => setColName(v, e.target.value || null)} style={{ flex: 1 }}>
-                        <option value="">— columna —</option>
+                        <option value="">{t("gen.combine.colPlaceholder")}</option>
                         {cols.map((c, ci) => <option key={ci} value={c}>{c}</option>)}
                       </select>
                     </div>
@@ -759,7 +766,7 @@ function CombineStep({ template, files, onAddFiles, onRemoveFile, onClear, combi
                     </div>
                   </>
                 ) : (
-                  <input className="input" placeholder="Escribe el valor…" value={m.value || ""} onChange={(e) => setFixed(v, e.target.value)} />
+                  <input className="input" placeholder={t("gen.combine.writeValue")} value={m.value || ""} onChange={(e) => setFixed(v, e.target.value)} />
                 )}
               </div>
             </div>
@@ -767,7 +774,7 @@ function CombineStep({ template, files, onAddFiles, onRemoveFile, onClear, combi
         })}
       </div>
       <p className="wiz-sub" style={{ marginTop: 12 }}>
-        Las variables <strong>▸ varían por fila</strong> salen de la lista principal (un documento por fila); las <strong>= iguales en todos</strong> toman la fila 1 de su Excel y se repiten. Si ves un valor en <span style={{ color: "var(--warn)" }}>ámbar tipo «{"{{…}}"}»</span>, ese Excel aún tiene el marcador sin rellenar.
+        {t("gen.combine.note.a")}<strong>{t("gen.combine.note.varies")}</strong>{t("gen.combine.note.b")}<strong>{t("gen.combine.note.same")}</strong>{t("gen.combine.note.c")}<span style={{ color: "var(--warn)" }}>{t("gen.combine.note.amber")}</span>{t("gen.combine.note.d")}
       </p>
     </div>
   );
@@ -775,6 +782,7 @@ function CombineStep({ template, files, onAddFiles, onRemoveFile, onClear, combi
 
 // Reusable fixed-value profiles bar (used in Excel mapping + manual form).
 function ProfilesBar({ onApply, getCurrent }) {
+  const { t } = useT();
   const [profiles, setProfiles] = useState([]);
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState("");
@@ -784,7 +792,7 @@ function ProfilesBar({ onApply, getCurrent }) {
   const current = getCurrent();
   const canSave = Object.keys(current).length > 0;
   const save = async () => {
-    const p = { id: "p" + Date.now(), name: name.trim() || "Perfil", values: current };
+    const p = { id: "p" + Date.now(), name: name.trim() || t("gen.profiles.defaultName"), values: current };
     setProfiles(await api.saveProfile(p));
     setNaming(false); setName("");
   };
@@ -793,36 +801,36 @@ function ProfilesBar({ onApply, getCurrent }) {
   return (
     <div className="profiles-bar">
       <Icon name="sparkles" style={{ width: 15, height: 15, color: "var(--accent)" }} />
-      <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink-2)" }}>Perfiles de valores fijos</span>
-      {profiles.length === 0 && <span className="muted" style={{ fontSize: 12.5 }}>— guarda los valores fijos actuales para reutilizarlos</span>}
+      <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink-2)" }}>{t("gen.profiles.label")}</span>
+      {profiles.length === 0 && <span className="muted" style={{ fontSize: 12.5 }}>{t("gen.profiles.hint")}</span>}
       {profiles.map((p) => (
         <span className="ftoken" key={p.id} style={{ background: "var(--surface-2)", color: "var(--ink-2)", border: "1px solid var(--border)" }}>
           <button style={{ border: "none", background: "none", cursor: "pointer", color: "inherit", font: "inherit", padding: 0, display: "inline-flex", alignItems: "center", gap: 5 }}
-            title={`Aplicar «${p.name}»`} onClick={() => onApply(p.values)}>
+            title={t("gen.profiles.apply", { name: p.name })} onClick={() => onApply(p.values)}>
             <Icon name="check" style={{ width: 12, height: 12, color: "var(--accent)" }} /> {p.name}
           </button>
-          <button title="Eliminar perfil" onClick={() => del(p.id)} style={{ color: "var(--ink-3)" }}><Icon name="x" /></button>
+          <button title={t("gen.profiles.delete")} onClick={() => del(p.id)} style={{ color: "var(--ink-3)" }}><Icon name="x" /></button>
         </span>
       ))}
       <div className="spacer" style={{ flex: 1 }} />
       <button className="btn btn-subtle btn-sm" disabled={!canSave} onClick={() => { setName(""); setNaming(true); }}>
-        <Icon name="plus" /> Guardar actual
+        <Icon name="plus" /> {t("gen.profiles.saveCurrent")}
       </button>
 
       {naming && (
         <div className="overlay" onClick={() => setNaming(false)}>
           <div className="modal" style={{ width: "min(420px, 92%)" }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head"><div className="modal-title">Guardar perfil</div><button className="icon-btn" onClick={() => setNaming(false)}><Icon name="x" /></button></div>
+            <div className="modal-head"><div className="modal-title">{t("gen.profiles.saveTitle")}</div><button className="icon-btn" onClick={() => setNaming(false)}><Icon name="x" /></button></div>
             <div className="modal-body">
-              <p className="wiz-sub" style={{ marginTop: 0 }}>Se guardarán {Object.keys(current).length} {Object.keys(current).length === 1 ? "valor fijo" : "valores fijos"} para reutilizarlos en cualquier plantilla con esas variables.</p>
+              <p className="wiz-sub" style={{ marginTop: 0 }}>{t("gen.profiles.saveDesc", { n: Object.keys(current).length })}</p>
               <div className="field" style={{ marginBottom: 0 }}>
-                <label>Nombre del perfil</label>
-                <input className="input" autoFocus value={name} placeholder="Ej: Datos de mi empresa" onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} />
+                <label>{t("gen.profiles.nameLabel")}</label>
+                <input className="input" autoFocus value={name} placeholder={t("gen.profiles.namePh")} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} />
               </div>
             </div>
             <div className="modal-foot">
-              <button className="btn btn-subtle" onClick={() => setNaming(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={save}><Icon name="check" /> Guardar</button>
+              <button className="btn btn-subtle" onClick={() => setNaming(false)}>{t("common.cancel")}</button>
+              <button className="btn btn-primary" onClick={save}><Icon name="check" /> {t("common.save")}</button>
             </div>
           </div>
         </div>
@@ -833,6 +841,7 @@ function ProfilesBar({ onApply, getCurrent }) {
 
 // ---------- Step 4: confirmation ----------
 function Confirm({ template, source, files, count, mapping, values, settings, setSettings, pdfAvailable, preflight, previewData }) {
+  const { t } = useT();
   const fixed = source === "excel"
     ? template.vars.filter((v) => mapping[v] && mapping[v].mode === "fixed" && mapping[v].value.trim() !== "")
     : [];
@@ -847,24 +856,24 @@ function Confirm({ template, source, files, count, mapping, values, settings, se
 
   return (
     <div className="fade-in">
-      <h3 className="wiz-h">Revisa y confirma</h3>
-      <p className="wiz-sub">Comprueba los detalles antes de generar.</p>
+      <h3 className="wiz-h">{t("gen.confirm.h")}</h3>
+      <p className="wiz-sub">{t("gen.confirm.sub")}</p>
       <div className="summary">
         <div className="sum-row">
           <div className="sum-ic"><Icon name="doc" /></div>
-          <div><div className="sum-label">Plantilla</div><div className="sum-value">{template.name}</div></div>
+          <div><div className="sum-label">{t("gen.confirm.template")}</div><div className="sum-value">{template.name}</div></div>
         </div>
         <div className="sum-row" style={multi ? { alignItems: "flex-start" } : undefined}>
           <div className="sum-ic"><Icon name={source === "excel" ? "excel" : "form"} /></div>
           <div style={{ flex: 1 }}>
-            <div className="sum-label">Origen de datos</div>
+            <div className="sum-label">{t("gen.confirm.dataSource")}</div>
             {source === "combine" ? (
-              <div className="sum-value">{count} {count === 1 ? "documento" : "documentos"} · combinando {files.length} Excel</div>
+              <div className="sum-value">{t("gen.confirm.combineDocs", { count, files: files.length })}</div>
             ) : source !== "excel" ? (
-              <div className="sum-value">Formulario manual</div>
+              <div className="sum-value">{t("gen.confirm.manualForm")}</div>
             ) : multi ? (
               <>
-                <div className="sum-value">{files.length} archivos Excel · un lote por archivo</div>
+                <div className="sum-value">{t("gen.confirm.multiBatch", { files: files.length })}</div>
                 <div className="vchips" style={{ marginTop: 8 }}>
                   {files.map((f) => (
                     <span className="vchip" key={f.file} style={{ display: "inline-flex", gap: 6, fontSize: 11 }}>
@@ -882,7 +891,7 @@ function Confirm({ template, source, files, count, mapping, values, settings, se
           <div className="sum-row" style={{ alignItems: "flex-start" }}>
             <div className="sum-ic"><Icon name="edit" /></div>
             <div style={{ flex: 1 }}>
-              <div className="sum-label">Valores fijos (iguales en todos los documentos)</div>
+              <div className="sum-label">{t("gen.confirm.fixedValues")}</div>
               <div className="vchips" style={{ marginTop: 8 }}>
                 {fixed.map((v) => (
                   <span className="vchip" key={v} style={{ display: "inline-flex", gap: 6 }}>
@@ -896,21 +905,21 @@ function Confirm({ template, source, files, count, mapping, values, settings, se
         <div className="sum-row">
           <div className="sum-ic"><Icon name="folder" /></div>
           <div style={{ flex: 1 }}>
-            <div className="sum-label">Carpeta de destino</div>
+            <div className="sum-label">{t("gen.confirm.destFolder")}</div>
             <div className="sum-value mono">{settings.folder}</div>
-            {multi && <div className="sum-label" style={{ marginTop: 4 }}>Cada archivo se guardará en una subcarpeta con su nombre.</div>}
+            {multi && <div className="sum-label" style={{ marginTop: 4 }}>{t("gen.confirm.subfolderNote")}</div>}
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={changeFolder}><Icon name="folderOpen" /> Cambiar</button>
+          <button className="btn btn-ghost btn-sm" onClick={changeFolder}><Icon name="folderOpen" /> {t("common.change")}</button>
         </div>
         <div className="sum-row" style={{ alignItems: "flex-start" }}>
           <div className="sum-ic"><Icon name="doc" /></div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="sum-label">Nombre de archivo</div>
+            <div className="sum-label">{t("gen.confirm.filename")}</div>
             <div style={{ marginTop: 8 }}>
               <FilenameBuilder tokens={settings.tokens} setTokens={(tk) => setSettings({ ...settings, tokens: tk })} options={template.vars} />
             </div>
             <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
-              <span className="muted">Ejemplo:</span>
+              <span className="muted">{t("gen.confirm.example")}</span>
               <span className="sum-value mono" style={{ fontSize: 13 }}>{sampleName}</span>
             </div>
           </div>
@@ -918,16 +927,16 @@ function Confirm({ template, source, files, count, mapping, values, settings, se
         <div className="sum-row">
           <div className="sum-ic"><Icon name="pdf" /></div>
           <div style={{ flex: 1 }}>
-            <div className="sum-value">Exportar también a PDF</div>
+            <div className="sum-value">{t("gen.confirm.pdfTitle")}</div>
             <div className="sum-label" style={{ marginTop: 2 }}>
-              {pdfAvailable ? "Se generará una copia .pdf de cada documento" : "LibreOffice no detectado — solo se generarán .docx"}
+              {pdfAvailable ? t("gen.confirm.pdf.on") : t("gen.confirm.pdf.off")}
             </div>
           </div>
           <Switch on={settings.pdf && pdfAvailable} onChange={(v) => pdfAvailable && setSettings({ ...settings, pdf: v })} />
         </div>
         <div className="sum-row" style={{ background: "var(--accent-soft)" }}>
           <div className="sum-ic" style={{ background: "var(--accent)", color: "#fff" }}><Icon name="bolt" /></div>
-          <div><div className="sum-label">Se van a generar</div><div className="sum-value">{count === 1 ? "1 documento" : count + " documentos"}{settings.pdf && pdfAvailable ? `  ·  ${count} PDF` : ""}</div></div>
+          <div><div className="sum-label">{t("gen.confirm.willGen")}</div><div className="sum-value">{t("gen.confirm.willGenValue", { count, pdf: settings.pdf && pdfAvailable })}</div></div>
           <div className="sum-big">{count}</div>
         </div>
       </div>
@@ -937,23 +946,23 @@ function Confirm({ template, source, files, count, mapping, values, settings, se
         <>
           <div className="sec-head" style={{ marginTop: "var(--s6)" }}>
             <Icon name={preflight.ok ? "checkCircle" : "alert"} style={{ width: 16, height: 16, color: preflight.ok ? "var(--success)" : "var(--warn)" }} />
-            <h2>Comprobación previa</h2>
+            <h2>{t("gen.preflight.h")}</h2>
           </div>
           {preflight.ok ? (
-            <div className="pf-row ok"><Icon name="checkCircle" style={{ width: 15, height: 15 }} /> Todo correcto · {count} {count === 1 ? "documento listo" : "documentos listos"} para generar.</div>
+            <div className="pf-row ok"><Icon name="checkCircle" style={{ width: 15, height: 15 }} /> {t("gen.preflight.ok", { count })}</div>
           ) : (
             <div className="preflight">
               {preflight.emptyList.map((e) => (
-                <div className="pf-row warn" key={"e" + e.v}><Icon name="alert" style={{ width: 14, height: 14 }} /> {e.c} {e.c === 1 ? "fila" : "filas"} con <strong>«{labelOfVar(template, e.v)}»</strong> vacío.</div>
+                <div className="pf-row warn" key={"e" + e.v}><Icon name="alert" style={{ width: 14, height: 14 }} /> {t("gen.preflight.empty", { c: e.c, label: labelOfVar(template, e.v) })}</div>
               ))}
               {preflight.badList.map((e) => (
-                <div className="pf-row warn" key={"b" + e.v}><Icon name="alert" style={{ width: 14, height: 14 }} /> {e.c} {e.c === 1 ? "valor" : "valores"} de <strong>«{labelOfVar(template, e.v)}»</strong> no {e.c === 1 ? "es un número válido" : "son números válidos"}.</div>
+                <div className="pf-row warn" key={"b" + e.v}><Icon name="alert" style={{ width: 14, height: 14 }} /> {t("gen.preflight.bad", { c: e.c, label: labelOfVar(template, e.v) })}</div>
               ))}
               {preflight.dupCount > 0 && (preflight.overwrite
-                ? <div className="pf-row danger"><Icon name="alert" style={{ width: 14, height: 14 }} /> Hasta {preflight.dupCount} documentos compartirían nombre y <strong>se sobrescribirían</strong> entre sí. Desactiva «Sobrescribir» o cambia el formato del nombre.</div>
-                : <div className="pf-row info"><Icon name="alert" style={{ width: 14, height: 14 }} /> Hasta {preflight.dupCount} documentos comparten el mismo nombre; se numerarán automáticamente (_2, _3…).</div>
+                ? <div className="pf-row danger"><Icon name="alert" style={{ width: 14, height: 14 }} /> {t("gen.preflight.dupOverwrite", { n: preflight.dupCount })}</div>
+                : <div className="pf-row info"><Icon name="alert" style={{ width: 14, height: 14 }} /> {t("gen.preflight.dupNumber", { n: preflight.dupCount })}</div>
               )}
-              <div className="pf-foot muted">Puedes generar igualmente: los campos vacíos se dejarán en blanco en el documento.</div>
+              <div className="pf-foot muted">{t("gen.preflight.foot")}</div>
             </div>
           )}
         </>
@@ -962,9 +971,9 @@ function Confirm({ template, source, files, count, mapping, values, settings, se
       {/* Real-data preview (first record) */}
       <div className="sec-head" style={{ marginTop: "var(--s6)" }}>
         <Icon name="eye" style={{ width: 16, height: 16, color: "var(--ink-3)" }} />
-        <h2>Vista previa con datos reales</h2>
+        <h2>{t("gen.confirm.realPreview")}</h2>
         <div className="spacer" />
-        <span className="muted" style={{ fontSize: 12.5 }}>{source === "excel" ? "primera fila" : "datos introducidos"}</span>
+        <span className="muted" style={{ fontSize: 12.5 }}>{source === "excel" ? t("gen.confirm.firstRow") : t("gen.confirm.enteredData")}</span>
       </div>
       <div className="preview-pane">
         <TemplatePreview template={template} values={previewData || data} />
@@ -975,6 +984,7 @@ function Confirm({ template, source, files, count, mapping, values, settings, se
 
 // ---------- Step 5: generating + result ----------
 function Result({ template, count, settings, payload, onRestart, onBack }) {
+  const { t } = useT();
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
   const [files, setFiles] = useState([]);
@@ -1010,7 +1020,7 @@ function Result({ template, count, settings, payload, onRestart, onBack }) {
     const r = await api.zipResults({ paths, rootDir: payload.options.folder, name: "DocFill_export" });
     setExportBusy("");
     if (r.error) setExportMsg(r.error);
-    else { setExportMsg("Archivo .zip creado."); api.openPath(r.path); }
+    else { setExportMsg(t("gen.result.zipDone")); api.openPath(r.path); }
   };
   const doMergePdf = async () => {
     setExportBusy("pdf"); setExportMsg("");
@@ -1018,7 +1028,7 @@ function Result({ template, count, settings, payload, onRestart, onBack }) {
     const r = await api.mergePdfs({ pdfPaths, rootDir: payload.options.folder, name: "DocFill_combinado" });
     setExportBusy("");
     if (r.error) setExportMsg(r.error);
-    else { setExportMsg("PDF combinado creado."); api.openPath(r.path); }
+    else { setExportMsg(t("gen.result.pdfDone")); api.openPath(r.path); }
   };
   const anyPdf = files.some((f) => f.pdf);
 
@@ -1029,11 +1039,11 @@ function Result({ template, count, settings, payload, onRestart, onBack }) {
     return (
       <div className="fade-in" style={{ textAlign: "center", padding: "var(--s7) 0" }}>
         <div className="result-check" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}><Icon name="alert" /></div>
-        <h3 className="wiz-h">No se pudo completar la generación</h3>
+        <h3 className="wiz-h">{t("gen.result.errTitle")}</h3>
         <p className="wiz-sub">{error}</p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-          <button className="btn btn-ghost btn-lg" onClick={onBack}><Icon name="chevL" /> Volver a confirmar</button>
-          <button className="btn btn-ghost btn-lg" onClick={onRestart}><Icon name="bolt" /> Empezar de nuevo</button>
+          <button className="btn btn-ghost btn-lg" onClick={onBack}><Icon name="chevL" /> {t("gen.result.backConfirm")}</button>
+          <button className="btn btn-ghost btn-lg" onClick={onRestart}><Icon name="bolt" /> {t("gen.result.restart")}</button>
         </div>
       </div>
     );
@@ -1050,8 +1060,8 @@ function Result({ template, count, settings, payload, onRestart, onBack }) {
           </svg>
           <div className="prog-num">{pct}%</div>
         </div>
-        <h3 className="wiz-h" style={{ textAlign: "center" }}>Generando documentos…</h3>
-        <p className="wiz-sub" style={{ textAlign: "center" }}>{progress} de {count} · rellenando «{template.name}»</p>
+        <h3 className="wiz-h" style={{ textAlign: "center" }}>{t("gen.progress.h")}</h3>
+        <p className="wiz-sub" style={{ textAlign: "center" }}>{t("gen.progress.sub", { done: progress, count, name: template.name })}</p>
         <div className="prog-bar"><div className="prog-fill" style={{ width: pct + "%" }} /></div>
         <div className="prog-files">
           {recent.map((f, i) => (
@@ -1060,7 +1070,7 @@ function Result({ template, count, settings, payload, onRestart, onBack }) {
         </div>
         <div style={{ textAlign: "center", marginTop: "var(--s5)" }}>
           <button className="btn btn-ghost" onClick={cancel} disabled={canceling}>
-            {canceling ? "Cancelando…" : <><Icon name="x" /> Cancelar</>}
+            {canceling ? t("gen.progress.canceling") : <><Icon name="x" /> {t("gen.progress.cancel")}</>}
           </button>
         </div>
       </div>
@@ -1076,25 +1086,25 @@ function Result({ template, count, settings, payload, onRestart, onBack }) {
           <Icon name={cancelled ? "alert" : "checkCircle"} />
         </div>
         <h3 className="wiz-h" style={{ textAlign: "center", fontSize: 22 }}>
-          {cancelled ? "Generación cancelada" : "¡Listo!"} {files.length} {files.length === 1 ? "documento generado" : "documentos generados"}
+          {t("gen.result.title", { cancelled, n: files.length })}
         </h3>
         <p className="wiz-sub" style={{ textAlign: "center" }}>
-          {cancelled && "Se detuvo antes de terminar. "}Guardados en <span style={{ fontFamily: "var(--mono)", color: "var(--ink-2)" }}>{settings.folder}</span>
+          {cancelled && t("gen.result.savedIn.cancelled")}{t("gen.result.savedIn")}<span style={{ fontFamily: "var(--mono)", color: "var(--ink-2)" }}>{settings.folder}</span>
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 20, flexWrap: "wrap" }}>
-          <button className="btn btn-primary btn-lg" onClick={() => open(payload.options.folder)}><Icon name="folderOpen" /> Abrir carpeta</button>
+          <button className="btn btn-primary btn-lg" onClick={() => open(payload.options.folder)}><Icon name="folderOpen" /> {t("gen.result.openFolder")}</button>
           <button className="btn btn-ghost btn-lg" onClick={doZip} disabled={!!exportBusy || files.length === 0}>
-            {exportBusy === "zip" ? <span className="spinner" style={{ width: 15, height: 15, borderWidth: 2 }} /> : <Icon name="download" />} Exportar .zip
+            {exportBusy === "zip" ? <span className="spinner" style={{ width: 15, height: 15, borderWidth: 2 }} /> : <Icon name="download" />} {t("gen.result.exportZip")}
           </button>
           {anyPdf && (
             <button className="btn btn-ghost btn-lg" onClick={doMergePdf} disabled={!!exportBusy}>
-              {exportBusy === "pdf" ? <span className="spinner" style={{ width: 15, height: 15, borderWidth: 2 }} /> : <Icon name="pdf" />} Combinar PDFs
+              {exportBusy === "pdf" ? <span className="spinner" style={{ width: 15, height: 15, borderWidth: 2 }} /> : <Icon name="pdf" />} {t("gen.result.mergePdf")}
             </button>
           )}
-          <button className="btn btn-ghost btn-lg" onClick={onRestart}><Icon name="bolt" /> Generar más</button>
+          <button className="btn btn-ghost btn-lg" onClick={onRestart}><Icon name="bolt" /> {t("gen.result.genMore")}</button>
         </div>
         <div style={{ marginTop: 12 }}>
-          <button className="btn btn-subtle btn-sm" onClick={onBack}><Icon name="chevL" /> Volver a confirmar (ajustar y regenerar)</button>
+          <button className="btn btn-subtle btn-sm" onClick={onBack}><Icon name="chevL" /> {t("gen.result.backAdjust")}</button>
         </div>
         {exportMsg && <p className="wiz-sub" style={{ textAlign: "center", marginTop: 12 }}>{exportMsg}</p>}
       </div>
@@ -1102,12 +1112,11 @@ function Result({ template, count, settings, payload, onRestart, onBack }) {
       {failures.length > 0 && (
         <div className="fixed-note" style={{ background: "var(--warn-soft)", color: "var(--warn)", marginBottom: 18 }}>
           <Icon name="alert" style={{ width: 15, height: 15 }} />
-          {failures.length} {failures.length === 1 ? "documento no se pudo generar" : "documentos no se pudieron generar"}
-          {failures[0] && failures[0].error ? ` — ${failures[0].error}` : ""}{failures.length > 1 ? " (y otros)" : ""}.
+          {t("gen.result.failures", { n: failures.length, err: failures[0] && failures[0].error ? failures[0].error : "", more: failures.length > 1 })}
         </div>
       )}
 
-      <div className="sec-head"><h2>Archivos generados</h2><div className="spacer" /><span className="badge">{files.length} {files.length === 1 ? "archivo" : "archivos"}</span></div>
+      <div className="sec-head"><h2>{t("gen.result.generatedFiles")}</h2><div className="spacer" /><span className="badge">{t("gen.result.filesCount", { n: files.length })}</span></div>
       <div className="result-files">
         {files.map((f, i) => (
           <Fragment key={f.name + i}>
@@ -1115,14 +1124,14 @@ function Result({ template, count, settings, payload, onRestart, onBack }) {
               <div className="rfile-ic docx"><Icon name="doc" /></div>
               <div className="rfile-name">{f.name}</div>
               <div className="spacer" style={{ flex: 1 }} />
-              <button className="icon-btn" title="Abrir" onClick={() => open(f.path)}><Icon name="download" /></button>
+              <button className="icon-btn" title={t("gen.openTitle")} onClick={() => open(f.path)}><Icon name="download" /></button>
             </div>
             {f.pdf && (
               <div className="rfile">
                 <div className="rfile-ic pdf"><Icon name="pdf" /></div>
                 <div className="rfile-name">{f.pdf.name}</div>
                 <div className="spacer" style={{ flex: 1 }} />
-                <button className="icon-btn" title="Abrir" onClick={() => open(f.pdf.path)}><Icon name="download" /></button>
+                <button className="icon-btn" title={t("gen.openTitle")} onClick={() => open(f.pdf.path)}><Icon name="download" /></button>
               </div>
             )}
           </Fragment>
@@ -1134,6 +1143,7 @@ function Result({ template, count, settings, payload, onRestart, onBack }) {
 
 // ---------- Wizard orchestrator ----------
 export default function Generate({ initialTemplate, initialSource, templates, defaults, pdfAvailable, onPersistTemplate, onHome }) {
+  const { t } = useT();
   // When repeating a run we get a template (+ source) and jump ahead.
   const [step, setStep] = useState(initialTemplate ? (initialSource ? 2 : 1) : 0);
   const [templateId, setTemplateId] = useState(initialTemplate || null);
@@ -1252,8 +1262,8 @@ export default function Generate({ initialTemplate, initialSource, templates, de
     template.vars.forEach((v) => {
       const ty = typeOfVar(template, v);
       const val = (values[v] || "").trim();
-      if (!val) e[v] = "Este campo es obligatorio.";
-      else if ((ty === "number" || ty === "currency") && isNaN(parseFloat(val.replace(",", ".")))) e[v] = "Introduce un número válido.";
+      if (!val) e[v] = t("gen.err.required");
+      else if ((ty === "number" || ty === "currency") && isNaN(parseFloat(val.replace(",", ".")))) e[v] = t("gen.err.number");
     });
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -1346,8 +1356,8 @@ export default function Generate({ initialTemplate, initialSource, templates, de
 
   return (
     <div className="main">
-      <Toolbar title="Generar documentos" sub={template ? template.name : "Asistente paso a paso"}>
-        {step > 0 && step < 4 && <button className="btn btn-subtle" onClick={onHome}>Cancelar</button>}
+      <Toolbar title={t("gen.title")} sub={template ? template.name : t("gen.sub.wizard")}>
+        {step > 0 && step < 4 && <button className="btn btn-subtle" onClick={onHome}>{t("common.cancel")}</button>}
       </Toolbar>
       <div className="scroll">
         <div className="wizard">
@@ -1364,10 +1374,10 @@ export default function Generate({ initialTemplate, initialSource, templates, de
 
           {step < 4 && (
             <div className="wizard-foot">
-              {step > 0 ? <button className="btn btn-ghost" onClick={back}>Atrás</button> : <span />}
+              {step > 0 ? <button className="btn btn-ghost" onClick={back}>{t("gen.foot.back")}</button> : <span />}
               <div className="spacer" />
-              {step < 3 && <button className="btn btn-primary" disabled={!canNext()} onClick={next}>Continuar <Icon name="chevR" /></button>}
-              {step === 3 && <button className="btn btn-primary btn-lg" disabled={count === 0} onClick={startGeneration}><Icon name="bolt" /> Generar {count === 1 ? "documento" : `${count} documentos`}</button>}
+              {step < 3 && <button className="btn btn-primary" disabled={!canNext()} onClick={next}>{t("gen.foot.continue")} <Icon name="chevR" /></button>}
+              {step === 3 && <button className="btn btn-primary btn-lg" disabled={count === 0} onClick={startGeneration}><Icon name="bolt" /> {t("gen.foot.generate", { n: count })}</button>}
             </div>
           )}
         </div>

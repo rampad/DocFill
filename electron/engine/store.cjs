@@ -15,7 +15,7 @@ const DEFAULTS = {
       { type: "var", value: "fecha" },
     ],
   },
-  appearance: { accent: "grafito", density: "comfy" },
+  appearance: { accent: "grafito", density: "comfy", lang: "es" },
   history: [],
   profiles: [], // reusable fixed-value sets: { id, name, values: { varName: value } }
 };

@@ -15,6 +15,46 @@ const DEV_URL = "http://127.0.0.1:5173";
 
 let win;
 
+// Minimal ES/EN strings for native dialogs and backend errors. The renderer has
+// its own full i18n; this only covers what the main process produces. Language
+// comes from the persisted appearance setting.
+const MAIN_STRINGS = {
+  es: {
+    "dlg.pickTemplate": "Selecciona una plantilla de Word",
+    "dlg.wordDocs": "Documentos de Word",
+    "dlg.replaceDocx": "Reemplazar archivo .docx",
+    "dlg.pickExcel": "Selecciona uno o varios archivos Excel",
+    "dlg.spreadsheets": "Hojas de cálculo",
+    "dlg.destFolder": "Carpeta de destino",
+    "err.readDocx": "No se pudo leer el .docx: ",
+    "err.dropDocx": "Arrastra un archivo .docx.",
+    "err.templateNotFound": "Plantilla no encontrada.",
+    "err.readExcel": "No se pudo leer el Excel: ",
+    "err.dropXlsx": "Arrastra archivos .xlsx válidos.",
+    "err.docxMissing": "No se encuentra el archivo .docx de la plantilla.",
+  },
+  en: {
+    "dlg.pickTemplate": "Select a Word template",
+    "dlg.wordDocs": "Word documents",
+    "dlg.replaceDocx": "Replace .docx file",
+    "dlg.pickExcel": "Select one or more Excel files",
+    "dlg.spreadsheets": "Spreadsheets",
+    "dlg.destFolder": "Destination folder",
+    "err.readDocx": "Couldn't read the .docx: ",
+    "err.dropDocx": "Drop a .docx file.",
+    "err.templateNotFound": "Template not found.",
+    "err.readExcel": "Couldn't read the Excel: ",
+    "err.dropXlsx": "Drop valid .xlsx files.",
+    "err.docxMissing": "The template's .docx file can't be found.",
+  },
+};
+function tr(key) {
+  let lang = "es";
+  try { lang = (store.store.get("appearance") || {}).lang || "es"; } catch (e) {}
+  const table = MAIN_STRINGS[lang] || MAIN_STRINGS.es;
+  return table[key] != null ? table[key] : MAIN_STRINGS.es[key] || key;
+}
+
 function templatesDir() {
   const dir = path.join(app.getPath("userData"), "templates");
   fs.mkdirSync(dir, { recursive: true });
@@ -140,8 +180,8 @@ async function importDocx(srcPath) {
 
 ipcMain.handle("template:pickAndImport", async () => {
   const r = await dialog.showOpenDialog(win, {
-    title: "Selecciona una plantilla de Word",
-    filters: [{ name: "Documentos de Word", extensions: ["docx"] }],
+    title: tr("dlg.pickTemplate"),
+    filters: [{ name: tr("dlg.wordDocs"), extensions: ["docx"] }],
     properties: ["openFile"],
   });
   if (r.canceled || !r.filePaths.length) return { canceled: true };
@@ -150,31 +190,31 @@ ipcMain.handle("template:pickAndImport", async () => {
     store.upsertTemplate(template);
     return { canceled: false, template };
   } catch (err) {
-    return { canceled: false, error: "No se pudo leer el .docx: " + err.message };
+    return { canceled: false, error: tr("err.readDocx") + err.message };
   }
 });
 
 // Import a .docx by path (drag & drop) — no dialog.
 ipcMain.handle("template:importPath", async (_e, p) => {
-  if (!p || !/\.docx$/i.test(p)) return { canceled: false, error: "Arrastra un archivo .docx." };
+  if (!p || !/\.docx$/i.test(p)) return { canceled: false, error: tr("err.dropDocx") };
   try {
     const template = await importDocx(p);
     store.upsertTemplate(template);
     return { canceled: false, template };
   } catch (err) {
-    return { canceled: false, error: "No se pudo leer el .docx: " + err.message };
+    return { canceled: false, error: tr("err.readDocx") + err.message };
   }
 });
 
 ipcMain.handle("template:replaceDocx", async (_e, id) => {
   const r = await dialog.showOpenDialog(win, {
-    title: "Reemplazar archivo .docx",
-    filters: [{ name: "Documentos de Word", extensions: ["docx"] }],
+    title: tr("dlg.replaceDocx"),
+    filters: [{ name: tr("dlg.wordDocs"), extensions: ["docx"] }],
     properties: ["openFile"],
   });
   if (r.canceled || !r.filePaths.length) return { canceled: true };
   const existing = store.getTemplate(id);
-  if (!existing) return { canceled: false, error: "Plantilla no encontrada." };
+  if (!existing) return { canceled: false, error: tr("err.templateNotFound") };
   try {
     const buffer = fs.readFileSync(r.filePaths[0]);
     fs.writeFileSync(existing.docxPath, buffer);
@@ -187,15 +227,15 @@ ipcMain.handle("template:replaceDocx", async (_e, id) => {
     store.upsertTemplate(updated);
     return { canceled: false, template: updated };
   } catch (err) {
-    return { canceled: false, error: "No se pudo leer el .docx: " + err.message };
+    return { canceled: false, error: tr("err.readDocx") + err.message };
   }
 });
 
 // ---------------- Excel ----------------
 ipcMain.handle("excel:pickAndRead", async () => {
   const r = await dialog.showOpenDialog(win, {
-    title: "Selecciona uno o varios archivos Excel",
-    filters: [{ name: "Hojas de cálculo", extensions: ["xlsx", "xlsm"] }],
+    title: tr("dlg.pickExcel"),
+    filters: [{ name: tr("dlg.spreadsheets"), extensions: ["xlsx", "xlsm"] }],
     properties: ["openFile", "multiSelections"],
   });
   if (r.canceled || !r.filePaths.length) return { canceled: true };
@@ -207,7 +247,7 @@ ipcMain.handle("excel:pickAndRead", async () => {
     }
     return { canceled: false, files };
   } catch (err) {
-    return { canceled: false, error: "No se pudo leer el Excel: " + err.message };
+    return { canceled: false, error: tr("err.readExcel") + err.message };
   }
 });
 
@@ -220,16 +260,16 @@ ipcMain.handle("excel:readPaths", async (_e, paths) => {
       const data = await readExcel(p);
       files.push({ file: path.basename(p), ...data });
     }
-    if (!files.length) return { canceled: false, error: "Arrastra archivos .xlsx válidos." };
+    if (!files.length) return { canceled: false, error: tr("err.dropXlsx") };
     return { canceled: false, files };
   } catch (err) {
-    return { canceled: false, error: "No se pudo leer el Excel: " + err.message };
+    return { canceled: false, error: tr("err.readExcel") + err.message };
   }
 });
 
 // ---------------- Folder picker ----------------
 ipcMain.handle("folder:pick", async () => {
-  const r = await dialog.showOpenDialog(win, { title: "Carpeta de destino", properties: ["openDirectory", "createDirectory"] });
+  const r = await dialog.showOpenDialog(win, { title: tr("dlg.destFolder"), properties: ["openDirectory", "createDirectory"] });
   if (r.canceled || !r.filePaths.length) return { canceled: true };
   return { canceled: false, path: r.filePaths[0] };
 });
@@ -240,7 +280,7 @@ ipcMain.handle("generate:cancel", () => { genCancel = true; });
 ipcMain.handle("generate:run", async (e, payload) => {
   const template = store.getTemplate(payload.template.id) || payload.template;
   if (!template || !template.docxPath || !fs.existsSync(template.docxPath)) {
-    return { error: "No se encuentra el archivo .docx de la plantilla." };
+    return { error: tr("err.docxMissing") };
   }
   const buffer = fs.readFileSync(template.docxPath);
   genCancel = false;

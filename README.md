@@ -1,5 +1,7 @@
 <div align="center">
 
+**Español** · [English](README.en.md)
+
 # ⚡ DocFill
 
 **Rellena documentos de Word automáticamente a partir de datos.**
@@ -48,7 +50,7 @@ formulario manual.
 - 🧾 **PDF** — exporta una copia `.pdf` de cada documento (vía LibreOffice headless).
 - 📦 **Al terminar** — abrir carpeta, **exportar todo en `.zip`** o **combinar los PDF en uno**.
 - 🕘 **Historial** — actividad reciente con opción de **repetir** una generación.
-- 🎨 **Apariencia** — color de acento, densidad; marco de ventana nativo (macOS / Windows).
+- 🎨 **Apariencia** — color de acento, densidad; marco de ventana nativo (macOS / Windows); **idioma ES/EN**.
 - 🖱️ **Arrastrar y soltar** archivos `.docx` / `.xlsx`.
 
 ---
@@ -124,6 +126,7 @@ electron/
 src/
   App.jsx             enrutado, estado, apariencia
   api.js              acceso unificado al backend (nativo o simulado en navegador)
+  i18n.js             textos ES/EN + helper de traducción
   components/         Icon, TitleBar, Sidebar, Toolbar, DocPreview, TemplatePreview, Switch, FilenameBuilder
   screens/            Home, Templates, Generate, Settings
   styles.css          tokens de diseño + estilos
